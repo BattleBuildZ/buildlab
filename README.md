@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BuildLab
 
-## Getting Started
+Workshop project management: projects, cut lists (mm and inch kept separate), hardware, 3D print checklists, build steps, plus an
+electronics inventory with manual testing. Next.js (App Router) + Supabase + Vercel.
 
-First, run the development server:
+## Status
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+| Phase | Scope | State |
+| --- | --- | --- |
+| 1 | Foundation: auth, shell, dashboard, create / two-step soft delete, settings, theme | built |
+| 2 | Project tracking: hardware, cut list tiles, steps | not built |
+| 3 | Assets and print checklist | not built |
+| 4 | Electronics inventory | not built (schema ready) |
+| 5 | Manual test bench, calculator, converter | not built (schema ready) |
+| 6 | Project / electronics integration | not built |
+| 7 | Automated test bench | later |
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Plan-PDF extraction for **Sourced** projects is not implemented. Sourced projects are created empty.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a Supabase project. Run `supabase/migrations/0001`, `0002`, `0003` in order (SQL editor or `supabase db push`).
+2. `cp .env.local.example .env.local` and fill in the project URL and publishable key.
+3. `npm install && npm run dev`, open http://localhost:3000, create an account.
+4. Deploy: import the repo in Vercel and set the same two environment variables.
 
-## Learn More
+## Database tests
 
-To learn more about Next.js, take a look at the following resources:
+`supabase/tests/` runs the migrations against plain Postgres with a small Supabase stub (never apply the stub to a real project):
+`00_supabase_stub.sql`, then the migrations, then `01_behavior.sql`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deleting data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `docs/DELETION.md`.

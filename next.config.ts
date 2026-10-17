@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
-};
+// Every page is per-user and reads the session cookie, so Cache Components (static shells) is intentionally off.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
