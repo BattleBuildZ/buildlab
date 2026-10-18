@@ -24,7 +24,21 @@ export default async function ProjectList({ filters, action }: { filters: Projec
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   const q = filters.q?.trim();
-  if (q) query = query.ilike("name", `%${q.replace(/[%_]/g, (c) => "\\" + c)}%`);
+  if (q) {
+    // Match the project name or description, or anything inside the project: cut pieces, hardware, build steps.
+    const like = `%${q.replace(/[%_\\]/g, (c) => "\\" + c)}%`;
+    const [cut, hw, st] = await Promise.all([
+      supabase.from("cut_list_items").select("project_id").ilike("name", like).limit(500),
+      supabase.from("hardware_items").select("project_id").ilike("name", like).limit(500),
+      supabase.from("build_steps").select("project_id").ilike("title", like).limit(500),
+    ]);
+    const inside = [...new Set([...(cut.data ?? []), ...(hw.data ?? []), ...(st.data ?? [])].map((r) => r.project_id as string))];
+    // PostgREST .or() splits on commas and parentheses, so quote the pattern.
+    const quoted = `"${like.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+    const parts = [`name.ilike.${quoted}`, `description.ilike.${quoted}`];
+    if (inside.length) parts.push(`id.in.(${inside.join(",")})`);
+    query = query.or(parts.join(","));
+  }
   if (filters.status && filters.status in STATUS_LABEL) query = query.eq("status", filters.status);
 
   const { data, error } = await query;
@@ -40,7 +54,7 @@ export default async function ProjectList({ filters, action }: { filters: Projec
       <form className="filters" action={action} role="search" aria-label="Filter projects">
         <div className="field">
           <label htmlFor="f-q">Search</label>
-          <input id="f-q" name="q" className="input" defaultValue={filters.q ?? ""} placeholder="Project name" />
+          <input id="f-q" name="q" className="input" defaultValue={filters.q ?? ""} placeholder="Project, piece, hardware or step" />
         </div>
         <div className="field">
           <label htmlFor="f-status">Status</label>

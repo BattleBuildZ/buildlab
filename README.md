@@ -8,7 +8,7 @@ electronics inventory with manual testing. Next.js (App Router) + Supabase + Ver
 | Phase | Scope | State |
 | --- | --- | --- |
 | 1 | Foundation: auth, shell, dashboard, create / two-step soft delete, settings, theme | built |
-| 2 | Project tracking: hardware, cut list tiles, steps | not built |
+| 2 | Project tracking: summary progress, hardware checklist, cut list (mm and in, per-unit tiles, By Group / By Size), build steps with phases, search | built (no new SQL needed) |
 | 3 | Assets and print checklist | not built |
 | 4 | Electronics inventory | not built (schema ready) |
 | 5 | Manual test bench, calculator, converter | not built (schema ready) |
@@ -16,6 +16,14 @@ electronics inventory with manual testing. Next.js (App Router) + Supabase + Ver
 | 7 | Automated test bench | later |
 
 Plan-PDF extraction for **Sourced** projects is not implemented. Sourced projects are created empty.
+
+## Project workspace (Phase 2)
+
+- **Cut list** is the workbench cut list: every piece has a quantity and labelled dimensions; mm and in are separate boxes and never converted.
+  Inches accept a decimal (23.625) or a fraction (23 5/8). Each unit is its own tile; By Group and By Size views; Print button.
+- **Progress** counts each cut unit, hardware line (when marked ready), print part and build step as one item. See `src/lib/progress.ts`.
+- **Search** on the Projects page matches project names and descriptions plus cut piece, hardware and step names.
+- Tested end to end on a local stack (Postgres with the migrations + PostgREST) with Playwright: add/edit/delete, tiles, reorder, search, no overflow at 375 px.
 
 ## Hosting
 
