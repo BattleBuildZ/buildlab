@@ -17,6 +17,10 @@ electronics inventory with manual testing. Next.js (App Router) + Supabase + Ver
 
 Plan-PDF extraction for **Sourced** projects is not implemented. Sourced projects are created empty.
 
+## Hosting
+
+Live: https://buildlab-phi.vercel.app (Vercel project `buildlab`, deploys from `main` on GitHub). Database and auth: Supabase.
+
 ## Setup
 
 1. Create a Supabase project. Run `supabase/migrations/0001`, `0002`, `0003` in order (SQL editor or `supabase db push`).
