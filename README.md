@@ -36,3 +36,5 @@ Live: https://buildlab-phi.vercel.app (Vercel project `buildlab`, deploys from `
 ## Deleting data
 
 See `docs/DELETION.md`.
+
+<!-- deploy check: 2026-10-18T02:29:40Z -->
