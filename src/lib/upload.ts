@@ -15,7 +15,6 @@ export type UploadedMeta = {
   height_px: number | null;
 };
 
-const BUCKET = "project-files";
 
 async function resizeTo640(file: File): Promise<{ blob: Blob; width: number; height: number; origW: number; origH: number } | null> {
   try {
@@ -50,13 +49,14 @@ export function contentTypeFor(file: File, mode: "print" | "document") {
 export async function uploadProjectFile(
   projectId: string,
   file: File,
-  opts: { mode: "print" | "document"; optimize?: boolean },
+  opts: { mode: "print" | "document"; optimize?: boolean; bucket?: "project-files" | "component-files" },
 ): Promise<{ ok: true; meta: UploadedMeta } | { ok: false; error: string }> {
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: `${file.name} is larger than 50 MB.` };
   if (file.size === 0) return { ok: false, error: `${file.name} is empty.` };
   if (opts.mode === "print" && !(extOf(file.name) in PRINT_EXT_MIME)) {
     return { ok: false, error: `${file.name}: print files can be .stl, .3mf, .step, .gcode, .obj or .zip.` };
   }
+  const BUCKET = opts.bucket ?? "project-files";
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: "You are signed out. Sign in again and retry." };
@@ -86,7 +86,7 @@ export async function uploadProjectFile(
 }
 
 // Best effort: used when registering the upload failed, so orphaned objects do not pile up.
-export async function discardUpload(meta: UploadedMeta) {
+export async function discardUpload(meta: UploadedMeta, bucket: "project-files" | "component-files" = "project-files") {
   const supabase = createClient();
-  await supabase.storage.from(BUCKET).remove([meta.storage_path, ...(meta.display_path ? [meta.display_path] : [])]);
+  await supabase.storage.from(bucket).remove([meta.storage_path, ...(meta.display_path ? [meta.display_path] : [])]);
 }

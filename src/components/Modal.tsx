@@ -17,14 +17,18 @@ export default function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const programmatic = useRef(false); // true while we close the dialog ourselves because `open` turned false
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
+    if (!open && d.open) {
+      programmatic.current = true;
+      d.close();
+    }
   }, [open]);
   return (
-    <dialog ref={ref} className={wide ? "dialog dialog-wide" : "dialog"} aria-labelledby="modal-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className={wide ? "dialog dialog-wide" : "dialog"} aria-labelledby="modal-title" onClose={() => { if (programmatic.current) { programmatic.current = false; return; } onClose(); }} onCancel={onClose}>
       {open && (
         <>
           <h2 id="modal-title">{title}</h2>

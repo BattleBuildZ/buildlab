@@ -10,7 +10,7 @@ electronics inventory with manual testing. Next.js (App Router) + Supabase + Ver
 | 1 | Foundation: auth, shell, dashboard, create / two-step soft delete, settings, theme | built |
 | 2 | Project tracking: summary progress, hardware checklist, cut list (mm and in, per-unit tiles, By Group / By Size), build steps with phases, search | built (no new SQL needed) |
 | 3 | Print checklist, file uploads, plan PDFs, drawing viewer, 640 px image copies, project photo | built (no new SQL; needs the `project-files` bucket from migration 0003) |
-| 4 | Electronics inventory | not built (schema ready) |
+| 4 | Electronics inventory: components, locations, audited stock movements, files with provenance, CSV import/export, QR labels | built (no new SQL; needs the `component-files` bucket from 0003) |
 | 5 | Manual test bench, calculator, converter | not built (schema ready) |
 | 6 | Project / electronics integration | not built |
 | 7 | Automated test bench | later |
@@ -35,6 +35,19 @@ Plan-PDF extraction for **Sourced** projects is not implemented. Sourced project
   orientation, notes, optional links to cut pieces, printed check-off, and any number of files (STL, 3MF, STEP, G-code, OBJ, ZIP) or links.
 - Deleting a file or part removes its stored objects. Deleting a whole project is a soft delete (see docs/DELETION.md).
 - Not yet: attaching a drawing/photo to an individual cut piece or build step (planned for Phase 6 polish).
+
+## Electronics inventory (Phase 4)
+
+- Works with zero projects. Nothing is pre-filled except the standard category names (and the app offers to add them if your account has none).
+- Stock: `quantity_on_hand` is changed only by recorded movements (starting stock, added, used, count correction). The database rejects direct edits,
+  refuses to go below zero, and the history cannot be edited or deleted. After each change the app re-reads the stored count before saying it saved.
+- "Delete" for components is **Archive** (two confirmations, restorable) so stock and test history are never lost.
+- Electrical details and specs are only what you type. Each is shown as **Unverified** unless you tick that you checked it against documentation;
+  files and links carry the same verified flag plus source, variant and (for wiring) target board.
+- CSV: export components or the full movement history; import up to 200 rows (preview first, duplicates and bad rows reported and skipped, missing
+  categories and locations created). Cells starting with = + - @ are neutralised on export.
+- QR labels for components and locations encode `/q/{token}`; scanning while signed in opens the item.
+- Not yet: per-unit tracking screens, test procedures and the manual test bench (Phase 5), project reservations and consumption (Phase 6).
 
 ## Hosting
 
