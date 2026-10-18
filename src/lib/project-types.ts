@@ -36,3 +36,32 @@ export type Step = {
   completed_at: string | null;
   sort_order: number;
 };
+
+export type Asset = {
+  id: string;
+  kind: string;
+  original_filename: string;
+  mime_type: string | null;
+  size_bytes: number | string | null;
+  display_path: string | null;
+  storage_path: string;
+  width_px: number | null;
+  height_px: number | null;
+  created_at: string;
+  previewUrl: string | null; // short-lived signed URL of the ~640 px display copy (images only)
+};
+export type PrintFile = { id: string; kind: "link" | "upload"; url: string | null; asset_id: string | null; filename: string | null; project_assets: { id: string; size_bytes: number | string | null } | null };
+export type PrintPart = {
+  id: string;
+  name: string;
+  quantity: number | null;
+  material: string | null;
+  infill: string | null;
+  supports: string | null;
+  orientation: string | null;
+  notes: string | null;
+  completed_at: string | null;
+  sort_order: number;
+  print_files: PrintFile[];
+  print_part_cut_items: { cut_list_item_id: string }[];
+};

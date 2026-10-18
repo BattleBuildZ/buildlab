@@ -268,3 +268,23 @@ dialog.dialog::backdrop { background: rgba(20,19,15,.55); }
   body { background: #fff; color: #000; }
   .card, .cut-card { break-inside: avoid; border-color: #999; background: #fff; }
 }
+
+/* ------------------------------------------------------------ files, print, viewer (phase 3) */
+dialog.dialog-wide { width: min(980px, 100%); }
+.viewer-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.viewer-stage { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); overflow: auto; max-height: 72dvh; display: grid; place-items: start center; }
+.viewer-stage img { display: block; max-width: 100%; height: auto; }
+.viewer-stage img[data-actual="true"] { max-width: none; }
+.viewer-stage iframe { width: 100%; height: 72dvh; border: 0; background: #fff; }
+.file-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.file-item { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.file-thumb { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; background: var(--border-soft); display: grid; place-items: center; overflow: hidden; color: var(--ink-faint); font-weight: 800; letter-spacing: .08em; }
+.file-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.file-name { font-weight: 650; overflow-wrap: anywhere; }
+.photo-flag { color: var(--accent); font-weight: 650; }
+.part-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.part-card[data-done="true"] { border-color: var(--done); background: var(--done-tint); }
+.chip { display: inline-flex; font-size: 12px; font-weight: 650; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.thumb-hero { width: 96px; height: 96px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border); }
+.card-thumb { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--border-soft); }

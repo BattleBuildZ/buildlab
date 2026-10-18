@@ -8,11 +8,13 @@ export default function Modal({
   onClose,
   title,
   children,
+  wide,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -22,7 +24,7 @@ export default function Modal({
     if (!open && d.open) d.close();
   }, [open]);
   return (
-    <dialog ref={ref} className="dialog" aria-labelledby="modal-title" onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className={wide ? "dialog dialog-wide" : "dialog"} aria-labelledby="modal-title" onClose={onClose} onCancel={onClose}>
       {open && (
         <>
           <h2 id="modal-title">{title}</h2>

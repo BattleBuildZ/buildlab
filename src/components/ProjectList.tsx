@@ -14,13 +14,14 @@ type Row = {
   status: string;
   updated_at: string;
   assemblies: { fabrication_type: FabricationType }[];
+  thumbnail: { display_path: string | null; storage_path: string } | null;
 };
 
 export default async function ProjectList({ filters, action }: { filters: ProjectFilters; action: string }) {
   const supabase = await createClient();
   let query = supabase
     .from("projects")
-    .select("id,name,description,type,status,updated_at,assemblies(fabrication_type)")
+    .select("id,name,description,type,status,updated_at,assemblies(fabrication_type),thumbnail:project_assets!projects_thumbnail_fk(display_path,storage_path)")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   const q = filters.q?.trim();
@@ -48,6 +49,11 @@ export default async function ProjectList({ filters, action }: { filters: Projec
   const fab = FABRICATION_TYPES.find((t) => t === filters.fab);
   if (fab) rows = rows.filter((r) => r.assemblies.some((a) => a.fabrication_type === fab));
   const filtered = Boolean(q || filters.status || fab);
+
+  // Project photos: small signed links to the ~640 px copy.
+  const thumbPaths = rows.flatMap((r) => (r.thumbnail ? [r.thumbnail.display_path ?? r.thumbnail.storage_path] : []));
+  const signed = thumbPaths.length ? await supabase.storage.from("project-files").createSignedUrls(thumbPaths, 3600) : { data: [] };
+  const thumbUrl = new Map((signed.data ?? []).map((u) => [u.path ?? "", u.signedUrl]));
 
   return (
     <>
@@ -94,8 +100,13 @@ export default async function ProjectList({ filters, action }: { filters: Projec
         <ul className="grid" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {rows.map((p) => {
             const types = [...new Set(p.assemblies.map((a) => a.fabrication_type))];
+            const photo = p.thumbnail ? thumbUrl.get(p.thumbnail.display_path ?? p.thumbnail.storage_path) : null;
             return (
               <li key={p.id} className="card project-card">
+                {photo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="card-thumb" src={photo} alt="" loading="lazy" />
+                )}
                 <div className="row">
                   <span className="badge badge-type">{p.type === "sourced" ? "Sourced" : "Custom"}</span>
                   <span className="badge badge-type">{STATUS_LABEL[p.status] ?? p.status}</span>

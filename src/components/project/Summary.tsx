@@ -20,9 +20,9 @@ function Tile({ title, c, href, empty }: { title: string; c: Count; href: string
 }
 
 export default function Summary({
-  cut, hardware, steps, printTotal, printDone, hasPrinting, hasOpenCutPieces,
+  cut, hardware, steps, printTotal, printDone, hasPrinting, hasOpenCutPieces, children,
 }: {
-  cut: CutItem[]; hardware: Hardware[]; steps: Step[]; printTotal: number; printDone: number; hasPrinting: boolean; hasOpenCutPieces: boolean;
+  cut: CutItem[]; hardware: Hardware[]; steps: Step[]; printTotal: number; printDone: number; hasPrinting: boolean; hasOpenCutPieces: boolean; children?: React.ReactNode;
 }) {
   const c = cutCount(cut), h = hardwareCount(hardware), s = stepCount(steps);
   const p: Count = { done: printDone, total: printTotal };
@@ -52,7 +52,7 @@ export default function Summary({
       <div className="sum-grid">
         <Tile title="Cut pieces" c={c} href="#cut-list" empty="No cut list yet — add one →" />
         <Tile title="Hardware ready" c={h} href="#hardware" empty="No hardware yet — add some →" />
-        {hasPrinting && <Tile title="Printed parts" c={p} href="#print" empty="Print checklist arrives next" />}
+        {hasPrinting && <Tile title="Printed parts" c={p} href="#print" empty="No parts yet — add one →" />}
         <Tile title="Build steps" c={s} href="#steps" empty="No steps yet — add one →" />
       </div>
       {(next || review > 0 || notReady.length > 0) && (
@@ -63,6 +63,7 @@ export default function Summary({
           {hasOpenCutPieces && <li><b>Cut list:</b> {c.total - c.done} piece{c.total - c.done === 1 ? "" : "s"} left to cut.</li>}
         </ul>
       )}
+      {children}
     </section>
   );
 }
