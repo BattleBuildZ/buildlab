@@ -26,6 +26,7 @@ function ItemForm({
 }: {
   projectId: string; assemblies: Assembly[]; item?: CutItem; defaultAssembly?: string; onDone: () => void;
 }) {
+  const noAssembly = assemblies.length === 0;
   const { pending, error, run } = useRun();
   const [dims, setDims] = useState<DimRow[]>(() =>
     item && item.cut_item_dimensions.length
@@ -41,7 +42,9 @@ function ItemForm({
     const f = new FormData(e.currentTarget);
     run(
       () => saveCutItem(projectId, item?.id ?? null, {
-        assembly_id: f.get("assembly"),
+        ...(noAssembly
+          ? { new_assembly: { name: f.get("asm_name"), fabrication_type: f.get("asm_type") } }
+          : { assembly_id: f.get("assembly") }),
         name: f.get("name"),
         material: f.get("material") ?? "",
         quantity: qty,
@@ -55,12 +58,27 @@ function ItemForm({
 
   return (
     <form onSubmit={submit} className="stack">
-      <div className="field">
-        <label htmlFor="ci-asm">Assembly</label>
-        <select id="ci-asm" name="assembly" className="select" defaultValue={item?.assembly_id ?? defaultAssembly ?? assemblies[0]?.id}>
-          {assemblies.map((a) => <option key={a.id} value={a.id}>{a.name} ({FABRICATION_LABEL[a.fabrication_type]})</option>)}
-        </select>
-      </div>
+      {noAssembly ? (
+        <div className="two">
+          <div className="field">
+            <label htmlFor="ci-asm-name">Cut list group name</label>
+            <input id="ci-asm-name" name="asm_name" className="input" required maxLength={80} defaultValue="Main" />
+          </div>
+          <div className="field">
+            <label htmlFor="ci-asm-type">Fabrication</label>
+            <select id="ci-asm-type" name="asm_type" className="select" defaultValue="woodworking">
+              {FABRICATION_TYPES.map((t) => <option key={t} value={t}>{FABRICATION_LABEL[t]}</option>)}
+            </select>
+          </div>
+        </div>
+      ) : (
+        <div className="field">
+          <label htmlFor="ci-asm">Assembly</label>
+          <select id="ci-asm" name="assembly" className="select" defaultValue={item?.assembly_id ?? defaultAssembly ?? assemblies[0]?.id}>
+            {assemblies.map((a) => <option key={a.id} value={a.id}>{a.name} ({FABRICATION_LABEL[a.fabrication_type]})</option>)}
+          </select>
+        </div>
+      )}
       <div className="two">
         <div className="field">
           <label htmlFor="ci-name">Piece name</label>
@@ -307,13 +325,13 @@ export default function CutListSection({ projectId, assemblies, items }: { proje
           <p className="hint">Workbench cut list: tap a tile when that piece is cut. Every size is typed in mm and in separately.</p>
         </div>
         <div className="row no-print">
-          <button type="button" className="btn" onClick={() => setAddingAsm(true)}>Add assembly</button>
-          <button type="button" className="btn btn-primary" disabled={assemblies.length === 0} onClick={() => setAddingPiece(true)}>Add piece</button>
+          {assemblies.length > 0 && <button type="button" className="btn" onClick={() => setAddingAsm(true)}>Add assembly</button>}
+          <button type="button" className="btn btn-primary" onClick={() => setAddingPiece(true)}>{assemblies.length === 0 ? "Add cut list" : "Add piece"}</button>
         </div>
       </div>
 
       {assemblies.length === 0 ? (
-        <p className="empty-inline">Cut pieces live inside an assembly (Frame, Drawer, Lid…). Add your first assembly to start the list.</p>
+        <p className="empty-inline">No cut list yet. Use “Add cut list” to enter your first piece with its quantity and size in mm and in.</p>
       ) : items.length === 0 ? (
         <p className="empty-inline">No pieces yet. Add each part you need to cut, with its quantity and size.</p>
       ) : (
@@ -377,7 +395,7 @@ export default function CutListSection({ projectId, assemblies, items }: { proje
       <Modal open={addingAsm} onClose={() => setAddingAsm(false)} title="Add assembly">
         <AssemblyForm projectId={projectId} onDone={() => setAddingAsm(false)} />
       </Modal>
-      <Modal open={addingPiece} onClose={() => setAddingPiece(false)} title="Add piece">
+      <Modal open={addingPiece} onClose={() => setAddingPiece(false)} title={assemblies.length === 0 ? "Add cut list" : "Add piece"}>
         <ItemForm projectId={projectId} assemblies={asmOrdered} onDone={() => setAddingPiece(false)} />
       </Modal>
     </section>

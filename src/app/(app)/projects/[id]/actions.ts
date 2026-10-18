@@ -200,7 +200,9 @@ const dimInput = z.object({
   inch: z.string().optional(),
 });
 const cutInput = z.object({
-  assembly_id: id,
+  assembly_id: id.optional(),
+  // Used when the project has no assembly yet: the first piece creates one ("Add cut list").
+  new_assembly: assemblyInput.optional(),
   name: text(160).min(1, "Give the piece a name."),
   material: optText(160),
   quantity: z.coerce.number().int("Quantity must be a whole number.").min(1, "Quantity must be at least 1.").max(1000, "Quantity can be at most 1000."),
@@ -231,12 +233,29 @@ export async function saveCutItem(projectId: string, itemId: string | null, inpu
   if (!c.success) return fail(first(c.error));
   const dims = cleanDims(c.data.dims);
   if (!dims.ok) return fail(dims.error);
-  const { dims: _ignored, ...fields } = c.data;
+  const { dims: _ignored, new_assembly: newAssembly, assembly_id: givenAssembly, ...rest } = c.data;
   void _ignored;
 
   const supabase = await createClient();
-  const { data: asm } = await supabase.from("assemblies").select("id").eq("id", fields.assembly_id).eq("project_id", projectId).maybeSingle();
-  if (!asm) return fail("Pick an assembly that belongs to this project.");
+  let assemblyId = givenAssembly;
+  let createdAssembly: string | null = null;
+  if (!assemblyId) {
+    if (!newAssembly || itemId !== null) return fail("Pick an assembly for this piece.");
+    if (!(await ownsProject(supabase, projectId))) return fail("That project no longer exists.");
+    const { count } = await supabase.from("assemblies").select("id", { count: "exact", head: true }).eq("project_id", projectId);
+    const { data, error } = await supabase
+      .from("assemblies")
+      .insert({ project_id: projectId, sort_order: count ?? 0, ...newAssembly })
+      .select("id");
+    if (error) return fail(error.message);
+    if ((data ?? []).length !== 1) return fail("The cut list was not created.");
+    assemblyId = data![0].id as string;
+    createdAssembly = assemblyId;
+  } else {
+    const { data: asm } = await supabase.from("assemblies").select("id").eq("id", assemblyId).eq("project_id", projectId).maybeSingle();
+    if (!asm) return fail("Pick an assembly that belongs to this project.");
+  }
+  const fields = { ...rest, assembly_id: assemblyId };
 
   let cutId = itemId;
   if (itemId === null) {
@@ -245,8 +264,11 @@ export async function saveCutItem(projectId: string, itemId: string | null, inpu
       .from("cut_list_items")
       .insert({ project_id: projectId, sort_order: count ?? 0, ...fields })
       .select("id");
-    if (error) return fail(error.message);
-    if ((data ?? []).length !== 1) return fail("The piece was not saved.");
+    if (error || (data ?? []).length !== 1) {
+      // Do not leave an empty assembly behind when the very first piece failed to save.
+      if (createdAssembly) await supabase.from("assemblies").delete().eq("id", createdAssembly);
+      return fail(error?.message ?? "The piece was not saved.");
+    }
     cutId = data![0].id;
   } else {
     const { data, error } = await supabase

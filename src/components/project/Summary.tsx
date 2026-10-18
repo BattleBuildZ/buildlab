@@ -50,10 +50,10 @@ export default function Summary({
         </div>
       </div>
       <div className="sum-grid">
-        <Tile title="Cut pieces" c={c} href="#cut-list" empty="No pieces yet" />
-        <Tile title="Hardware ready" c={h} href="#hardware" empty="No hardware yet" />
+        <Tile title="Cut pieces" c={c} href="#cut-list" empty="No cut list yet — add one →" />
+        <Tile title="Hardware ready" c={h} href="#hardware" empty="No hardware yet — add some →" />
         {hasPrinting && <Tile title="Printed parts" c={p} href="#print" empty="Print checklist arrives next" />}
-        <Tile title="Build steps" c={s} href="#steps" empty="No steps yet" />
+        <Tile title="Build steps" c={s} href="#steps" empty="No steps yet — add one →" />
       </div>
       {(next || review > 0 || notReady.length > 0) && (
         <ul className="todo">
