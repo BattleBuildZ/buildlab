@@ -29,7 +29,7 @@ export default function CsvImport() {
     setRows(table.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""]))));
   }
 
-  const template = `${COMPONENT_CSV_COLUMNS.join(",")}\nBME280 sensor,Sensors,Bosch,BME280,breakout,3,2,new,Drawer A1,1.71,3.6,3.3,I2C;SPI,,\n`;
+  const template = `${COMPONENT_CSV_COLUMNS.join(",")}\nBME280 sensor,Sensors,Bosch,BME280,breakout,3,2,new,Drawer A1,1.71,3.6,3.3,I2C;SPI,,,\n`;
 
   return (
     <>
@@ -38,7 +38,7 @@ export default function CsvImport() {
         <div className="stack">
           {report ? (
             <>
-              <p className="toast-ok" role="status">Imported {report.created} component{report.created === 1 ? "" : "s"}.</p>
+              <p className="toast-ok" role="status">Imported {report.created} component{report.created === 1 ? "" : "s"}{report.links > 0 ? ` and ${report.links} link${report.links === 1 ? "" : "s"}` : ""}.</p>
               {report.newCategories.length > 0 && <p className="hint">New categories created: {report.newCategories.join(", ")}.</p>}
               {report.newLocations.length > 0 && <p className="hint">New locations created: {report.newLocations.join(", ")}.</p>}
               {report.skipped.length > 0 && (
@@ -53,7 +53,7 @@ export default function CsvImport() {
             <>
               <p className="hint">
                 One component per row. Columns: {COMPONENT_CSV_COLUMNS.join(", ")}. Only <b>name</b> is required. Quantities become starting stock.
-                Voltages from a file are marked unverified. Rows that match an existing name, part number and variant are skipped.
+                Voltages from a file are marked unverified. A <b>link_url</b> becomes an unverified link on the component. Rows that match an existing name, part number and variant are skipped.
               </p>
               <a className="btn btn-sm" style={{ alignSelf: "flex-start" }} download="components-template.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(template)}`}>Download template</a>
               <div className="field">
@@ -66,10 +66,10 @@ export default function CsvImport() {
                   <p role="status">{rows.length} row{rows.length === 1 ? "" : "s"} ready. Nothing is saved until you confirm.</p>
                   <div className="table-wrap">
                     <table className="inv-table">
-                      <thead><tr><th>Name</th><th>Part number</th><th>Quantity</th><th>Location</th></tr></thead>
+                      <thead><tr><th>Name</th><th>Part number</th><th>Quantity</th><th>Location</th><th>Link</th></tr></thead>
                       <tbody>
                         {rows.slice(0, 5).map((r, i) => (
-                          <tr key={i}><td data-label="Name">{r.name}</td><td data-label="Part">{r.part_number}</td><td data-label="Qty">{r.quantity}</td><td data-label="Location">{r.location}</td></tr>
+                          <tr key={i}><td data-label="Name">{r.name}</td><td data-label="Part">{r.part_number}</td><td data-label="Qty">{r.quantity}</td><td data-label="Location">{r.location}</td><td data-label="Link">{r.link_url ? "Yes" : ""}</td></tr>
                         ))}
                       </tbody>
                     </table>

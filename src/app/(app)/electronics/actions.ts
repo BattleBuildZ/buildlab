@@ -378,7 +378,7 @@ export async function getComponentFileUrl(componentId: string, assetId: string, 
 /* ------------------------------------------------------------------ CSV import */
 
 const MAX_IMPORT_ROWS = 200;
-export type ImportReport = { created: number; skipped: { line: number; reason: string }[]; newCategories: string[]; newLocations: string[] };
+export type ImportReport = { created: number; links: number; skipped: { line: number; reason: string }[]; newCategories: string[]; newLocations: string[] };
 
 export async function importComponents(rows: unknown): Promise<ActionResult<ImportReport>> {
   const parsed = z.array(z.record(z.string(), z.string())).max(MAX_IMPORT_ROWS, `Import at most ${MAX_IMPORT_ROWS} rows at a time.`).safeParse(rows);
@@ -394,9 +394,9 @@ export async function importComponents(rows: unknown): Promise<ActionResult<Impo
   const catByName = new Map((cats ?? []).map((c) => [String(c.name).toLowerCase(), c.id as string]));
   const locByName = new Map((locs ?? []).map((l) => [String(l.name).toLowerCase(), l.id as string]));
   const seen = new Set((existing ?? []).map((e) => `${e.name}|${e.part_number ?? ""}|${e.variant ?? ""}`.toLowerCase()));
-  const report: ImportReport = { created: 0, skipped: [], newCategories: [], newLocations: [] };
+  const report: ImportReport = { created: 0, links: 0, skipped: [], newCategories: [], newLocations: [] };
 
-  type Prepared = { line: number; row: ReturnType<typeof shapeComponent>; qty: number; cat: string; loc: string };
+  type Prepared = { line: number; row: ReturnType<typeof shapeComponent>; qty: number; cat: string; loc: string; link: string | null };
   const prepared: Prepared[] = [];
   parsed.data.forEach((r, i) => {
     const line = i + 2; // header is line 1
@@ -414,10 +414,12 @@ export async function importComponents(rows: unknown): Promise<ActionResult<Impo
     const v = componentInput.safeParse(candidate);
     if (!v.success) return void report.skipped.push({ line, reason: first(v.error) });
     if (cond && !(CONDITIONS as readonly string[]).includes(cond)) return void report.skipped.push({ line, reason: `Condition "${cond}" is not one of ${CONDITIONS.join(", ")}.` });
+    const link = get("link_url");
+    if (link && !(link.length <= 2000 && /^https?:\/\/\S+$/i.test(link))) return void report.skipped.push({ line, reason: "link_url must start with http:// or https:// and contain no spaces." });
     const key = `${v.data.name}|${v.data.part_number ?? ""}|${v.data.variant ?? ""}`.toLowerCase();
     if (seen.has(key)) return void report.skipped.push({ line, reason: "Already in your inventory (same name, part number and variant)." });
     seen.add(key);
-    prepared.push({ line, row: shapeComponent(v.data), qty: v.data.quantity ?? 0, cat: get("category"), loc: get("location") });
+    prepared.push({ line, row: shapeComponent(v.data), qty: v.data.quantity ?? 0, cat: get("category"), loc: get("location"), link: link || null });
   });
 
   // Create categories and locations that the file names but you do not have yet.
@@ -443,6 +445,16 @@ export async function importComponents(rows: unknown): Promise<ActionResult<Impo
   const { data: created, error } = await supabase.from("electronic_components").insert(insertRows).select("id");
   if (error || (created ?? []).length !== insertRows.length) return fail(`Nothing was imported: ${error?.message ?? "the rows were not all saved"}.`);
 
+  // Product links (for example a store listing) are saved as unverified links on each component.
+  const links = prepared.flatMap((p, i) => (p.link ? [{ component_id: created![i].id as string, kind: "other", title: "Product listing", external_url: p.link, source_url: p.link, verified: false }] : []));
+  if (links.length) {
+    const { data: linked, error: lErr } = await supabase.from("component_assets").insert(links).select("id");
+    if (lErr || (linked ?? []).length !== links.length) {
+      await supabase.from("electronic_components").delete().in("id", created!.map((c) => c.id as string));
+      return fail(`Nothing was imported because the links could not be saved: ${lErr?.message ?? "not all links were saved"}`);
+    }
+  }
+
   const movements = prepared.flatMap((p, i) => (p.qty > 0 ? [{ component_id: created![i].id as string, movement_type: "initial", quantity_delta: p.qty, reason: "Imported from CSV" }] : []));
   if (movements.length) {
     const { error: mErr } = await supabase.from("component_stock_movements").insert(movements);
@@ -452,6 +464,7 @@ export async function importComponents(rows: unknown): Promise<ActionResult<Impo
     }
   }
   report.created = created!.length;
+  report.links = links.length;
   refresh();
   return { ok: true, data: report };
 }

@@ -11,13 +11,16 @@ export async function GET(req: Request) {
 
   let body: string;
   if (type === "components") {
-    const [c, cats, locs] = await Promise.all([
+    const [c, cats, locs, links] = await Promise.all([
       supabase.from("electronic_components").select("*").is("archived_at", null).order("name").limit(5000),
       supabase.from("component_categories").select("id,name"),
       supabase.from("component_storage_locations").select("id,name"),
+      supabase.from("component_assets").select("component_id,external_url,created_at").not("external_url", "is", null).order("created_at").limit(20000),
     ]);
     if (c.error) return new Response(c.error.message, { status: 500 });
     const cn = new Map((cats.data ?? []).map((x) => [x.id, x.name]));
+    const firstLink = new Map<string, string>();
+    for (const l of links.data ?? []) if (!firstLink.has(l.component_id)) firstLink.set(l.component_id, l.external_url as string);
     const ln = new Map((locs.data ?? []).map((x) => [x.id, x.name]));
     body = [
       csvLine([...COMPONENT_CSV_COLUMNS]),
@@ -25,7 +28,7 @@ export async function GET(req: Request) {
         csvLine([
           r.name, cn.get(r.category_id) ?? "", r.manufacturer, r.part_number, r.variant, r.quantity_on_hand, r.min_stock_threshold, r.condition,
           ln.get(r.storage_location_id) ?? "", r.operating_voltage_min, r.operating_voltage_max, r.logic_level_voltage, (r.interfaces ?? []).join(";"),
-          r.description, r.notes,
+          r.description, r.notes, firstLink.get(r.id) ?? "",
         ]),
       ),
     ].join("\r\n");

@@ -45,7 +45,7 @@ Plan-PDF extraction for **Sourced** projects is not implemented. Sourced project
 - Electrical details and specs are only what you type. Each is shown as **Unverified** unless you tick that you checked it against documentation;
   files and links carry the same verified flag plus source, variant and (for wiring) target board.
 - CSV: export components or the full movement history; import up to 200 rows (preview first, duplicates and bad rows reported and skipped, missing
-  categories and locations created). Cells starting with = + - @ are neutralised on export.
+  categories and locations created). An optional `link_url` column (http/https only) saves an unverified "Product listing" link on each component; if any link fails to save, the whole import is rolled back. Cells starting with = + - @ are neutralised on export.
 - QR labels for components and locations encode `/q/{token}`; scanning while signed in opens the item.
 - Not yet: per-unit tracking screens, test procedures and the manual test bench (Phase 5), project reservations and consumption (Phase 6).
 

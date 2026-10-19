@@ -85,5 +85,5 @@ export const csvLine = (cells: unknown[]) => cells.map(csvCell).join(",");
 
 export const COMPONENT_CSV_COLUMNS = [
   "name", "category", "manufacturer", "part_number", "variant", "quantity", "min_stock", "condition", "location",
-  "operating_voltage_min_v", "operating_voltage_max_v", "logic_level_v", "interfaces", "description", "notes",
+  "operating_voltage_min_v", "operating_voltage_max_v", "logic_level_v", "interfaces", "description", "notes", "link_url",
 ] as const;
