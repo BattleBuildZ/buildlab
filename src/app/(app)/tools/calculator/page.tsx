@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
-import NotBuilt from "@/components/NotBuilt";
+import Calculator from "@/components/tools/Calculator";
 
 export const metadata: Metadata = { title: "Calculator" };
 
 export default function Page() {
-  return <NotBuilt eyebrow="Tools" title="Calculator" phase="Phase 5" summary="A local calculator that never sends anything to a server." />;
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Tools</p>
+          <h1>Calculator</h1>
+          <p className="lede">Add, subtract, multiply, divide, brackets, percent, powers and square roots. Runs in your browser; nothing is sent or saved.</p>
+        </div>
+      </div>
+      <Calculator />
+    </>
+  );
 }

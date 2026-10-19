@@ -11,7 +11,7 @@ electronics inventory with manual testing. Next.js (App Router) + Supabase + Ver
 | 2 | Project tracking: summary progress, hardware checklist, cut list (mm and in, per-unit tiles, By Group / By Size), build steps with phases, search | built (no new SQL needed) |
 | 3 | Print checklist, file uploads, plan PDFs, drawing viewer, 640 px image copies, project photo | built (no new SQL; needs the `project-files` bucket from migration 0003) |
 | 4 | Electronics inventory: components, locations, audited stock movements, files with provenance, CSV import/export, QR labels | built (no new SQL; needs the `component-files` bucket from 0003) |
-| 5 | Manual test bench, calculator, converter | not built (schema ready) |
+| 5 | Manual test bench (versioned procedures, manual runs, per-unit tracking), Test History with CSV export, calculator, mm/inch converter | built (no new SQL) |
 | 6 | Project / electronics integration | not built |
 | 7 | Automated test bench | later |
 
@@ -48,6 +48,17 @@ Plan-PDF extraction for **Sourced** projects is not implemented. Sourced project
   categories and locations created). An optional `link_url` column (http/https only) saves an unverified "Product listing" link on each component; if any link fails to save, the whole import is rolled back. Cells starting with = + - @ are neutralised on export.
 - QR labels for components and locations encode `/q/{token}`; scanning while signed in opens the item.
 - Not yet: per-unit tracking screens, test procedures and the manual test bench (Phase 5), project reservations and consumption (Phase 6).
+
+## Test bench, history and tools (Phase 5)
+
+- **Procedures** are versioned. Editing never changes an old version: it adds version N+1, and every run keeps a snapshot of the criteria it was judged against.
+  Procedures start Unverified and manual only (the database also refuses to mark an unverified version as automatable). Nothing is pre-loaded.
+- **Manual runs:** tick every step, enter readings against the documented range, then record Passed, Failed or Inconclusive. Passed is refused unless every step is
+  ticked, every required reading is entered and no reading is outside its range. The server re-reads the procedure version; the browser's copy of the ranges is never trusted.
+- **Test History** is append-only: runs, readings and procedure versions have no update or delete policy. Each row says Manual or Automated. Older failures stay when a later run passes.
+  Export runs and readings as CSV.
+- Components tracked unit by unit get a Units panel; a run must name the unit, and retired units cannot be tested.
+- **Calculator** and **mm / inch converter** run in the browser only. The converter shows results on its own page and never writes into another mm or inch field.
 
 ## Hosting
 

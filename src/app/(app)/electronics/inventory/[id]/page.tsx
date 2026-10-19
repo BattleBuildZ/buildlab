@@ -5,6 +5,11 @@ import ComponentFiles, { type CAsset } from "@/components/electronics/ComponentF
 import EditComponentButton from "@/components/electronics/EditComponentButton";
 import QrLabel from "@/components/electronics/QrLabel";
 import StockPanel from "@/components/electronics/StockPanel";
+import { RunTestButton } from "@/components/testing/RunTestForm";
+import UnitsPanel, { type UnitRow } from "@/components/testing/UnitsPanel";
+import { loadRunTargets } from "@/lib/test-data";
+import { NewProcedureButton } from "@/components/testing/ProcedureForm";
+import { retestDue } from "@/lib/testing";
 import { CONDITION_LABEL, TEST_STATUS_BADGE, TEST_STATUS_LABEL, type Category, type ComponentRow, type Location } from "@/lib/electronics";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,13 +31,17 @@ export default async function ComponentPage({ params }: PageProps<"/electronics/
   if (!c) notFound();
   const comp = c as ComponentRow;
 
-  const [moves, assets, cats, locs] = await Promise.all([
+  const [moves, assets, cats, locs, runs, procs, unitRes, targets] = await Promise.all([
     supabase.from("component_stock_movements").select("id,created_at,movement_type,quantity_delta,quantity_after,reason").eq("component_id", id).order("created_at", { ascending: false }).limit(200),
     supabase.from("component_assets").select("id,kind,title,original_filename,mime_type,size_bytes,external_url,verified,source_url,variant,target_board,storage_path,display_path").eq("component_id", id).order("created_at", { ascending: false }),
     supabase.from("component_categories").select("id,name,is_custom").order("sort_order").order("name"),
     supabase.from("component_storage_locations").select("id,name,kind,parent_id,notes,qr_token,archived_at").order("name"),
+    supabase.from("test_runs").select("id,performed_at,outcome,source,unit_id,criteria_snapshot,procedure_version_number").eq("component_id", id).order("performed_at", { ascending: false }).order("created_at", { ascending: false }).limit(5),
+    supabase.from("test_procedures").select("id,name,component_id").is("archived_at", null).or(`component_id.eq.${id},component_id.is.null`).order("name").limit(50),
+    supabase.from("component_units").select("id,label,notes,test_status,last_tested_at,retired_at").eq("component_id", id).order("label"),
+    loadRunTargets(supabase, id),
   ]);
-  const failed = [moves, assets, cats, locs].find((r) => r.error);
+  const failed = [moves, assets, cats, locs, runs, procs, unitRes].find((r) => r.error);
   if (failed?.error) return <div className="error" role="alert">Could not load this component: {failed.error.message}</div>;
   const categories = (cats.data ?? []) as Category[];
   const locations = (locs.data ?? []) as Location[];
@@ -79,6 +88,44 @@ export default async function ComponentPage({ params }: PageProps<"/electronics/
           archived={Boolean(comp.archived_at)}
           moves={(moves.data ?? []) as never}
         />
+
+        <section id="testing" className="card section" aria-labelledby="h-testing">
+          <div className="section-head">
+            <div>
+              <h2 id="h-testing">Testing</h2>
+              <p className="hint">Latest result: <span className={`badge ${TEST_STATUS_BADGE[comp.test_status] ?? "badge-type"}`}>{TEST_STATUS_LABEL[comp.test_status] ?? comp.test_status}</span>{comp.last_tested_at ? ` · tested ${new Date(comp.last_tested_at).toLocaleDateString()}` : ""}{retestDue(comp.last_tested_at, comp.retest_interval_days) && <span className="unverified" style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>Retest due</span>}</p>
+            </div>
+            {!comp.archived_at && targets[0] && (
+              <div className="row">
+                <RunTestButton target={targets[0]} procedure={null} label="Record a test" primary />
+                <NewProcedureButton components={[{ id: comp.id, name: comp.name, part_number: comp.part_number, variant: comp.variant }]} defaultComponentId={comp.id} label="New procedure" />
+              </div>
+            )}
+          </div>
+          {(procs.data ?? []).length > 0 && (
+            <p className="hint">Procedures: {(procs.data ?? []).map((pr, i) => <span key={pr.id}>{i > 0 && ", "}<Link href={`/electronics/test-bench/${pr.id}`}>{pr.name}</Link></span>)}</p>
+          )}
+          {(runs.data ?? []).length === 0 ? <p className="hint">No tests recorded for this component yet.</p> : (
+            <ul className="check-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {(runs.data ?? []).map((r) => {
+                const snap = r.criteria_snapshot as { procedure_name?: string | null } | null;
+                return (
+                  <li key={r.id} className="check-row">
+                    <Link href={`/electronics/history/${r.id}`}>{new Date(r.performed_at as string).toLocaleString()}</Link>
+                    <div className="row">
+                      <span className="hint">{snap?.procedure_name ?? "No procedure"}</span>
+                      <span className={`badge ${r.source === "manual" ? "badge-manual" : "badge-type"}`}>{r.source === "manual" ? "Manual" : "Automated"}</span>
+                      <span className={`badge ${TEST_STATUS_BADGE[r.outcome as string] ?? "badge-type"}`}>{TEST_STATUS_LABEL[r.outcome as string] ?? r.outcome}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="hint"><Link href={`/electronics/history?component=${comp.id}`}>All test history for this component</Link></p>
+        </section>
+
+        {comp.track_individual_units && <UnitsPanel componentId={comp.id} units={(unitRes.data ?? []) as UnitRow[]} archived={Boolean(comp.archived_at)} />}
 
         <section id="details" className="card section" aria-labelledby="h-details">
           <h2 id="h-details">Details</h2>
